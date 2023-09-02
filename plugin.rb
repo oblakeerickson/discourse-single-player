@@ -9,12 +9,16 @@
 
 enabled_site_setting :single_player_enabled
 
-module ::MyPluginModule
-  PLUGIN_NAME = "discourse-single-player"
+module ::SinglePlayerModule
+  SINGLE_PLAYER = "discourse-single-player"
 end
 
 require_relative "lib/single_player_module/engine"
 
 after_initialize do
   # Code which should run after Rails has finished booting
+  DiscourseEvent.on(:user_created) do |user|
+    puts "USER CREATED !!!!!!!!!!!!!"
+    puts user.inspect
+  end
 end

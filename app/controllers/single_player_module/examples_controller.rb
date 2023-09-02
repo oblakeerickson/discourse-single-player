@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-module ::MyPluginModule
+module ::SinglePlayerModule
   class ExamplesController < ::ApplicationController
-    requires_plugin PLUGIN_NAME
+    requires_plugin SINGLE_PLAYER
 
     def index
       render json: { hello: "world" }

@@ -2,7 +2,7 @@
 
 module ::SinglePlayerModule
   class Engine < ::Rails::Engine
-    engine_name PLUGIN_NAME
+    engine_name SINGLE_PLAYER
     isolate_namespace SinglePlayerModule
     config.autoload_paths << File.join(config.root, "lib")
   end
