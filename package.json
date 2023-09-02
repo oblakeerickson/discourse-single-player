@@ -1,0 +1,9 @@
+{
+  "name": "discourse-single-player",
+  "version": "0.0.1",
+  "repository": "TODO",
+  "author": "Blake Erickson",
+  "devDependencies": {
+    "eslint-config-discourse": "^3.1.0"
+  }
+}
