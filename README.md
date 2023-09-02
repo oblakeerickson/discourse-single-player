@@ -1,5 +1,3 @@
-# **Plugin Name** Plugin
+# **Discourse Single Player** Plugin
 
-**Plugin Summary**
-
-For more information, please see: **url to meta topic**
+A plugin that creates a private category and private group for each new user.

@@ -1,4 +1,4 @@
 plugins:
-  plugin_name_enabled:
+  single_player_enabled:
     default: false
     client: true
