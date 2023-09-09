@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # name: discourse-single-player
-# about: All new users will only have access to their own private category and groupx
+# about: New users will get their own private category and group
 # version: 0.0.1
 # authors: Blake Erickson
 # url: https://github.com/oblakeerickson/discourse-single-player
@@ -18,23 +18,29 @@ require_relative "lib/single_player_module/engine"
 after_initialize do
   # Code which should run after Rails has finished booting
   DiscourseEvent.on(:user_created) do |user|
-    puts "USER CREATED !!!!!!!!!!!!!"
-    puts "USERNAME: #{user.username}"
-    puts "INSPECT: "
-    puts user.inspect
-
     username = user.username
     group_name = "g-#{username}"[0..19]
-    g = Group.create!({
+    group = Group.create!({
       name: group_name,
       visibility_level: 4,
       members_visibility_level: 4,
     })
 
-    puts "GROUP: #{g.name}"
-    puts g.inspect
+    group.add(user)
+    GroupActionLogger.new(Discourse.system_user, group).log_add_user_to_group(user)
 
-    # can see - Group owners
-    # can see members - Group owners
+    cat = {
+      user: Discourse.system_user,
+      name: username,
+      permissions: {}
+    }
+
+    # 1 - See Reply Create
+    # 2 - See Reply
+    cat[:permissions][group_name] = 1
+
+    category = Category.create!(cat)
+
+    # Add Category to Sidebar
   end
 end
