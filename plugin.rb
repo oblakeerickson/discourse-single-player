@@ -32,7 +32,7 @@ after_initialize do
     cat = {
       user: Discourse.system_user,
       name: username,
-      permissions: {}
+      permissions: {},
     }
 
     # 1 - See Reply Create
@@ -42,5 +42,27 @@ after_initialize do
     category = Category.create!(cat)
 
     # Add Category to Sidebar
+    sidebar_category_ids = user.secured_sidebar_category_ids
+    sidebar_category_ids << category.id
+
+    SidebarSectionLinksUpdater.update_category_section_links(
+      user,
+      category_ids: sidebar_category_ids,
+    )
+
+    # Create sub-categories
+    sub_cat_names = ["todo", "note"]
+    sub_cat_names.each do |sub_cat_name|
+      sub_cat = {
+        user: Discourse.system_user,
+        name: sub_cat_name,
+        permissions: {},
+        parent_category_id: category.id,
+      }
+      sub_cat[:permissions][group_name] = 1
+
+      Category.create!(sub_cat)
+    end
+
   end
 end
