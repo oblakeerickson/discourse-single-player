@@ -33,6 +33,7 @@ after_initialize do
       user: Discourse.system_user,
       name: username,
       permissions: {},
+      color: "231F20"
     }
 
     # 1 - See Reply Create
@@ -43,12 +44,6 @@ after_initialize do
 
     # Add Category to Sidebar
     sidebar_category_ids = user.secured_sidebar_category_ids
-    sidebar_category_ids << category.id
-
-    SidebarSectionLinksUpdater.update_category_section_links(
-      user,
-      category_ids: sidebar_category_ids,
-    )
 
     # Create sub-categories
     sub_cat_names = ["todo", "note"]
@@ -60,9 +55,22 @@ after_initialize do
         parent_category_id: category.id,
       }
       sub_cat[:permissions][group_name] = 1
+      if sub_cat_name == "note"
+        sub_cat[:color] = "808281"
+      end
+      if sub_cat_name == "todo"
+        sub_cat[:color] = "D51BCF"
+      end
 
-      Category.create!(sub_cat)
+      sub_category = Category.create!(sub_cat)
+      sidebar_category_ids << sub_category.id
     end
+
+    #Add Subcategories to sidebar
+    SidebarSectionLinksUpdater.update_category_section_links(
+      user,
+      category_ids: sidebar_category_ids,
+    )
 
   end
 end
