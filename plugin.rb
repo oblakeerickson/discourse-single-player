@@ -45,6 +45,7 @@ after_initialize do
     # Add Category to Sidebar
     sidebar_category_ids = user.secured_sidebar_category_ids
 
+    sub_categories = {}
     # Create sub-categories
     sub_cat_names = ["todo", "note", "plan"]
     sub_cat_names.each do |sub_cat_name|
@@ -69,6 +70,7 @@ after_initialize do
 
       sub_category = Category.create!(sub_cat)
       sidebar_category_ids << sub_category.id
+      sub_categories[sub_cat_name] = sub_category.id
     end
 
     #Add Subcategories to sidebar
@@ -76,6 +78,15 @@ after_initialize do
       user,
       category_ids: sidebar_category_ids,
     )
+
+    # Create Daily Plan Topic
+    daily_plan_topic = {
+      title: "Daily Plan",
+      raw: "Reply to this topic with your plans for the day.",
+      category: sub_categories["plan"],
+    }
+    NewPostManager.new(user, daily_plan_topic).perform
+    # Create Weekly Update Topic
 
   end
 end
