@@ -46,20 +46,25 @@ after_initialize do
     sidebar_category_ids = user.secured_sidebar_category_ids
 
     # Create sub-categories
-    sub_cat_names = ["todo", "note"]
+    sub_cat_names = ["todo", "note", "plan"]
     sub_cat_names.each do |sub_cat_name|
       sub_cat = {
         user: Discourse.system_user,
         name: sub_cat_name,
         permissions: {},
         parent_category_id: category.id,
+        reviewable_by_group_id: group.id,
+        allow_unlimited_owner_edits_on_first_post: true,
       }
       sub_cat[:permissions][group_name] = 1
       if sub_cat_name == "note"
-        sub_cat[:color] = "808281"
+        sub_cat[:color] = "B29DD9"
       end
       if sub_cat_name == "todo"
-        sub_cat[:color] = "D51BCF"
+        sub_cat[:color] = "779ECB"
+      end
+      if sub_cat_name == "plan"
+        sub_cat[:color] = "77DD77"
       end
 
       sub_category = Category.create!(sub_cat)
