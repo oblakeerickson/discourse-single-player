@@ -85,8 +85,52 @@ after_initialize do
       raw: "Reply to this topic with your plans for the day.",
       category: sub_categories["plan"],
     }
-    NewPostManager.new(user, daily_plan_topic).perform
+    plan_topic = NewPostManager.new(user, daily_plan_topic).perform
     # Create Weekly Update Topic
+    weekly_plan_topic = {
+      title: "Weekly Plan",
+      raw: "What would you like to accomplish this Week? How did last week go?",
+      category: sub_categories["plan"],
+    }
+    weekly_topic = NewPostManager.new(user, weekly_plan_topic).perform
+
+    # Create plan sidebar section
+    plan_sidebar = {
+      title: "plan",
+      user: user
+    }
+    plan_links = [
+      {
+        icon: "far-clipboard",
+        name: "daily",
+        value: "/t/#{plan_topic.post.topic_id}/last",
+      },
+      {
+        icon: "calendar-alt",
+        name: "weekly",
+        value: "/t/#{weekly_topic.post.topic_id}/last",
+      },
+    ]
+    SidebarSection.create!(plan_sidebar.merge(sidebar_urls_attributes: plan_links))
+
+    # Create todo sidebar section
+    todo_sidebar = {
+      title: "todo",
+      user: user
+    }
+    todo_links = [
+      {
+        icon: "far-square",
+        name: "open",
+        value: "/c/#{user.username}/todo/#{sub_categories["todo"]}?status=open",
+      },
+      {
+        icon: "far-check-square",
+        name: "closed",
+        value: "/c/#{user.username}/todo/#{sub_categories["todo"]}?status=closed",
+      },
+    ]
+    SidebarSection.create!(todo_sidebar.merge(sidebar_urls_attributes: todo_links))
 
   end
 end
