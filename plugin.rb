@@ -131,6 +131,11 @@ after_initialize do
     }
     todo_links = [
       {
+        icon: "plus",
+        name: "new",
+        value: "/new-topic?category_id=#{sub_categories["todo"]}",
+      },
+      {
         icon: "far-square",
         name: "open",
         value: "/c/#{user.username}/todo/#{sub_categories["todo"]}?status=open",
@@ -142,6 +147,20 @@ after_initialize do
       },
     ]
     SidebarSection.create!(todo_sidebar.merge(sidebar_urls_attributes: todo_links))
+
+    # Create note sidebar section
+    note_sidebar = {
+      title: "note",
+      user: user
+    }
+    note_links = [
+      {
+        icon: "plus",
+        name: "new",
+        value: "/new-topic?category_id=#{sub_categories["note"]}",
+      },
+    ]
+    SidebarSection.create!(note_sidebar.merge(sidebar_urls_attributes: note_links))
 
   end
 end
