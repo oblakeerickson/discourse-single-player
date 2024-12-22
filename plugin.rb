@@ -17,6 +17,16 @@ require_relative "lib/single_player_module/engine"
 
 after_initialize do
   # Code which should run after Rails has finished booting
+
+  SiteSetting.rate_limit_create_topic = 0
+  SiteSetting.rate_limit_create_post = 0
+  SiteSetting.rate_limit_new_user_create_post = 0
+  SiteSetting.max_topics_per_day = 90
+  SiteSetting.max_topics_in_first_day = 40
+  SiteSetting.default_trust_level = 1
+  SiteSetting.min_topic_title_length = 1
+  SiteSetting.allow_duplicate_topic_titles_category = true
+
   DiscourseEvent.on(:user_created) do |user|
     username = user.username
     group_name = "g-#{username}"[0..19]
@@ -54,7 +64,6 @@ after_initialize do
         name: sub_cat_name,
         permissions: {},
         parent_category_id: category.id,
-        reviewable_by_group_id: group.id,
         allow_unlimited_owner_edits_on_first_post: true,
       }
       sub_cat[:permissions][group_name] = 1
@@ -94,24 +103,26 @@ after_initialize do
     }
     weekly_topic = NewPostManager.new(user, weekly_plan_topic).perform
 
-    # Create plan sidebar section
-    plan_sidebar = {
-      title: "plan",
-      user: user
-    }
-    plan_links = [
-      {
-        icon: "far-clipboard",
-        name: "daily",
-        value: "/t/#{plan_topic.post.topic_id}/last",
-      },
-      {
-        icon: "calendar-alt",
-        name: "weekly",
-        value: "/t/#{weekly_topic.post.topic_id}/last",
-      },
-    ]
-    SidebarSection.create!(plan_sidebar.merge(sidebar_urls_attributes: plan_links))
+    if plan_topic.post && weekly_topic.post
+      # Create plan sidebar section
+      plan_sidebar = {
+        title: "plan",
+        user: user
+      }
+      plan_links = [
+        {
+          icon: "far-clipboard",
+          name: "daily",
+          value: "/t/#{plan_topic.post.topic_id}/last",
+        },
+        {
+          icon: "calendar-alt",
+          name: "weekly",
+          value: "/t/#{weekly_topic.post.topic_id}/last",
+        },
+      ]
+      SidebarSection.create!(plan_sidebar.merge(sidebar_urls_attributes: plan_links))
+    end
 
     # Create todo sidebar section
     todo_sidebar = {
