@@ -27,24 +27,15 @@ after_initialize do
   SiteSetting.min_topic_title_length = 1
   SiteSetting.allow_duplicate_topic_titles_category = true
 
-  DiscourseEvent.on(:user_created) do |user|
+  on(:user_created) do |user|
     username = user.username
     group_name = "g-#{username}"[0..19]
-    group = Group.create!({
-      name: group_name,
-      visibility_level: 4,
-      members_visibility_level: 4,
-    })
+    group = Group.create!({ name: group_name, visibility_level: 4, members_visibility_level: 4 })
 
     group.add(user)
     GroupActionLogger.new(Discourse.system_user, group).log_add_user_to_group(user)
 
-    cat = {
-      user: Discourse.system_user,
-      name: username,
-      permissions: {},
-      color: "231F20"
-    }
+    cat = { user: Discourse.system_user, name: username, permissions: {}, color: "231F20" }
 
     # 1 - See Reply Create
     # 2 - See Reply
@@ -55,112 +46,83 @@ after_initialize do
     # Add Category to Sidebar
     sidebar_category_ids = user.secured_sidebar_category_ids
 
-    sub_categories = {}
-    # Create sub-categories
-    sub_cat_names = ["todo", "note", "plan"]
-    sub_cat_names.each do |sub_cat_name|
-      sub_cat = {
-        user: Discourse.system_user,
-        name: sub_cat_name,
-        permissions: {},
-        parent_category_id: category.id,
-        allow_unlimited_owner_edits_on_first_post: true,
+    if SiteSetting.single_player_enable_subcategories
+      sub_categories = {}
+      # Create sub-categories
+      sub_cat_names = %w[todo note plan]
+      sub_cat_names.each do |sub_cat_name|
+        sub_cat = {
+          user: Discourse.system_user,
+          name: sub_cat_name,
+          permissions: {
+          },
+          parent_category_id: category.id,
+          allow_unlimited_owner_edits_on_first_post: true,
+        }
+        sub_cat[:permissions][group_name] = 1
+        sub_cat[:color] = "B29DD9" if sub_cat_name == "note"
+        sub_cat[:color] = "779ECB" if sub_cat_name == "todo"
+        sub_cat[:color] = "77DD77" if sub_cat_name == "plan"
+
+        sub_category = Category.create!(sub_cat)
+        sidebar_category_ids << sub_category.id
+        sub_categories[sub_cat_name] = sub_category.id
+      end
+
+      #Add Subcategories to sidebar
+      SidebarSectionLinksUpdater.update_category_section_links(
+        user,
+        category_ids: sidebar_category_ids,
+      )
+
+      # Create Daily Plan Topic
+      daily_plan_topic = {
+        title: "Daily Plan",
+        raw: "Reply to this topic with your plans for the day.",
+        category: sub_categories["plan"],
       }
-      sub_cat[:permissions][group_name] = 1
-      if sub_cat_name == "note"
-        sub_cat[:color] = "B29DD9"
-      end
-      if sub_cat_name == "todo"
-        sub_cat[:color] = "779ECB"
-      end
-      if sub_cat_name == "plan"
-        sub_cat[:color] = "77DD77"
-      end
-
-      sub_category = Category.create!(sub_cat)
-      sidebar_category_ids << sub_category.id
-      sub_categories[sub_cat_name] = sub_category.id
-    end
-
-    #Add Subcategories to sidebar
-    SidebarSectionLinksUpdater.update_category_section_links(
-      user,
-      category_ids: sidebar_category_ids,
-    )
-
-    # Create Daily Plan Topic
-    daily_plan_topic = {
-      title: "Daily Plan",
-      raw: "Reply to this topic with your plans for the day.",
-      category: sub_categories["plan"],
-    }
-    plan_topic = NewPostManager.new(user, daily_plan_topic).perform
-    # Create Weekly Update Topic
-    weekly_plan_topic = {
-      title: "Weekly Plan",
-      raw: "What would you like to accomplish this Week? How did last week go?",
-      category: sub_categories["plan"],
-    }
-    weekly_topic = NewPostManager.new(user, weekly_plan_topic).perform
-
-    if plan_topic.post && weekly_topic.post
-      # Create plan sidebar section
-      plan_sidebar = {
-        title: "plan",
-        user: user
+      plan_topic = NewPostManager.new(user, daily_plan_topic).perform
+      # Create Weekly Update Topic
+      weekly_plan_topic = {
+        title: "Weekly Plan",
+        raw: "What would you like to accomplish this Week? How did last week go?",
+        category: sub_categories["plan"],
       }
-      plan_links = [
+      weekly_topic = NewPostManager.new(user, weekly_plan_topic).perform
+
+      if plan_topic.post && weekly_topic.post
+        # Create plan sidebar section
+        plan_sidebar = { title: "plan", user: user }
+        plan_links = [
+          { icon: "far-clipboard", name: "daily", value: "/t/#{plan_topic.post.topic_id}/last" },
+          { icon: "calendar-alt", name: "weekly", value: "/t/#{weekly_topic.post.topic_id}/last" },
+        ]
+        SidebarSection.create!(plan_sidebar.merge(sidebar_urls_attributes: plan_links))
+      end
+
+      # Create todo sidebar section
+      todo_sidebar = { title: "todo", user: user }
+      todo_links = [
+        { icon: "plus", name: "new", value: "/new-topic?category_id=#{sub_categories["todo"]}" },
         {
-          icon: "far-clipboard",
-          name: "daily",
-          value: "/t/#{plan_topic.post.topic_id}/last",
+          icon: "far-square",
+          name: "open",
+          value: "/c/#{user.username}/todo/#{sub_categories["todo"]}?status=open",
         },
         {
-          icon: "calendar-alt",
-          name: "weekly",
-          value: "/t/#{weekly_topic.post.topic_id}/last",
+          icon: "far-check-square",
+          name: "closed",
+          value: "/c/#{user.username}/todo/#{sub_categories["todo"]}?status=closed",
         },
       ]
-      SidebarSection.create!(plan_sidebar.merge(sidebar_urls_attributes: plan_links))
+      SidebarSection.create!(todo_sidebar.merge(sidebar_urls_attributes: todo_links))
+
+      # Create note sidebar section
+      note_sidebar = { title: "note", user: user }
+      note_links = [
+        { icon: "plus", name: "new", value: "/new-topic?category_id=#{sub_categories["note"]}" },
+      ]
+      SidebarSection.create!(note_sidebar.merge(sidebar_urls_attributes: note_links))
     end
-
-    # Create todo sidebar section
-    todo_sidebar = {
-      title: "todo",
-      user: user
-    }
-    todo_links = [
-      {
-        icon: "plus",
-        name: "new",
-        value: "/new-topic?category_id=#{sub_categories["todo"]}",
-      },
-      {
-        icon: "far-square",
-        name: "open",
-        value: "/c/#{user.username}/todo/#{sub_categories["todo"]}?status=open",
-      },
-      {
-        icon: "far-check-square",
-        name: "closed",
-        value: "/c/#{user.username}/todo/#{sub_categories["todo"]}?status=closed",
-      },
-    ]
-    SidebarSection.create!(todo_sidebar.merge(sidebar_urls_attributes: todo_links))
-
-    # Create note sidebar section
-    note_sidebar = {
-      title: "note",
-      user: user
-    }
-    note_links = [
-      {
-        icon: "plus",
-        name: "new",
-        value: "/new-topic?category_id=#{sub_categories["note"]}",
-      },
-    ]
-    SidebarSection.create!(note_sidebar.merge(sidebar_urls_attributes: note_links))
-
   end
 end
